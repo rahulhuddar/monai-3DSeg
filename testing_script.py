@@ -32,8 +32,8 @@ def MONAI(weights):
     test_segmentation = sorted(glob(os.path.join(in_dir, "TestSegmenation", "*.nii.gz")))
 
     # test_files = [{"vol": image_name, "seg": label_name} for image_name, label_name in zip(test_images, test_segmentation)]
-    test_files = [{"vol": 'Task04_Hippocampus/TestVolumes/hippocampus_001.nii.gz', "seg": 'Task04_Hippocampus/TestSegmentation/hippocampus_001.nii.gz'}]
     # test_files = test_files[6:9]
+    test_files = [{"vol": 'Task04_Hippocampus/TestVolumes/hippocampus_003.nii.gz', "seg": 'Task04_Hippocampus/TestSegmentation/hippocampus_003.nii.gz'}]
     
     test_transforms = Compose(
         [
@@ -92,4 +92,4 @@ def MONAI(weights):
             plt.show()
 
 
-MONAI('best_metric_model.pth')
+MONAI('best_metric_model2.pth')

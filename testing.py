@@ -14,10 +14,9 @@ from monai.transforms import(
 
 from monai.networks.nets import UNet
 from monai.networks.layers import Norm
-from monai.data import CacheDataset, DataLoader, Dataset
+from monai.data import DataLoader, Dataset
 import torch
 import matplotlib.pyplot as plt
-import cv2
 from PIL import Image
 
 import os
@@ -26,50 +25,59 @@ import numpy as np
 
 from monai.inferers import sliding_window_inference
 
-def MONAI(weights, device, test_files):
+class MONAI:
+    def __init__(self, weights, device, test_files):
+        self.weights = weights
+        self.device = device
+        self.test_files = test_files
+
+    def ViewImage(self):
+        test_transforms = Compose(
+                [
+                    LoadImaged(keys=["vol", "seg"]),
+                    AddChanneld(keys=["vol", "seg"]),
+                    Spacingd(keys=["vol", "seg"], pixdim=(1.5,1.5,1.0), mode=("bilinear", "nearest")), 
+                    Orientationd(keys=["vol", "seg"], axcodes="RAS"),
+                    ScaleIntensityRanged(keys=["vol"], a_min=0, a_max=1800,b_min=0.0, b_max=1.0, clip=True), 
+                    CropForegroundd(keys=['vol', 'seg'], source_key='vol'),
+                    Resized(keys=["vol", "seg"], spatial_size=[128,128,64]),   
+                    ToTensord(keys=["vol", "seg"]),
+                ]
+            )
     
-    test_transforms = Compose(
-        [
-            LoadImaged(keys=["vol", "seg"]),
-            AddChanneld(keys=["vol", "seg"]),
-            Spacingd(keys=["vol", "seg"], pixdim=(1.5,1.5,1.0), mode=("bilinear", "nearest")), 
-            Orientationd(keys=["vol", "seg"], axcodes="RAS"),
-            ScaleIntensityRanged(keys=["vol"], a_min=0, a_max=1800,b_min=0.0, b_max=1.0, clip=True), 
-            CropForegroundd(keys=['vol', 'seg'], source_key='vol'),
-            Resized(keys=["vol", "seg"], spatial_size=[128,128,64]),   
-            ToTensord(keys=["vol", "seg"]),
-        ]
-    )
-
-    test_ds = Dataset(data=test_files, transform=test_transforms)
-    test_loader = DataLoader(test_ds, batch_size=1)
-
-    model = UNet(
-        spatial_dims=3,
-        in_channels=1,
-        out_channels=2,
-        channels=(16, 32, 64, 128, 256), 
-        strides=(2, 2, 2, 2),
-        num_res_units=2,
-        norm=Norm.BATCH,
-    ).to(device)
-
-    model.load_state_dict(torch.load(weights, map_location=device))
-    model.eval()
-
-    sw_batch_size = 4
-    roi_size = (128, 128, 64)
-    with torch.no_grad():
-        test_patient = first(test_loader)
-
-        t_volume = test_patient['vol']
-        
-        test_outputs = sliding_window_inference(t_volume.to(device), roi_size, sw_batch_size, model)
-        sigmoid_activation = Activations(sigmoid=True)
-        test_outputs = sigmoid_activation(test_outputs)
-        test_outputs = test_outputs > 0.53
+        test_ds = Dataset(data=self.test_files, transform=test_transforms)
+        self.test_loader = DataLoader(test_ds, batch_size=1)
+        test_patient = first(self.test_loader)
 
         return np.asarray(test_patient["vol"][0, 0, :, :, 20])
+
+    def Inference(self):
+        model = UNet(
+            spatial_dims=3,
+            in_channels=1,
+            out_channels=2,
+            channels=(16, 32, 64, 128, 256), 
+            strides=(2, 2, 2, 2),
+            num_res_units=2,
+            norm=Norm.BATCH,
+        ).to(self.device)
+
+        model.load_state_dict(torch.load(self.weights, map_location=self.device))
+        model.eval()
+
+        sw_batch_size = 4
+        roi_size = (128, 128, 64)
+        with torch.no_grad():
+            test_patient = first(self.test_loader)
+
+            t_volume = test_patient['vol']
+            
+            test_outputs = sliding_window_inference(t_volume.to(self.device), roi_size, sw_batch_size, model)
+            sigmoid_activation = Activations(sigmoid=True)
+            test_outputs = sigmoid_activation(test_outputs)
+            test_outputs = test_outputs > 0.53
+
+            return Image.fromarray(np.asarray(test_outputs.detach().cpu()[0, 1, :, :, 20]))
     
 
 
