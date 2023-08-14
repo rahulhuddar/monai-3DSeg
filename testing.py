@@ -26,9 +26,10 @@ import numpy as np
 from monai.inferers import sliding_window_inference
 
 class MONAI:
-    def __init__(self, weights, device, test_files):
+    def __init__(self, weights, device, test_files, slice_no):
         self.weights = weights
         self.device = device
+        self.slice_no = slice_no - 1
         self.test_files = test_files
 
     def ViewImage(self):
@@ -49,7 +50,7 @@ class MONAI:
         self.test_loader = DataLoader(test_ds, batch_size=1)
         test_patient = first(self.test_loader)
 
-        return np.asarray(test_patient["vol"][0, 0, :, :, 20])
+        return np.asarray(test_patient["vol"][0, 0, :, :, self.slice_no])
 
     def Inference(self):
         model = UNet(
@@ -77,7 +78,7 @@ class MONAI:
             test_outputs = sigmoid_activation(test_outputs)
             test_outputs = test_outputs > 0.53
 
-            return Image.fromarray(np.asarray(test_outputs.detach().cpu()[0, 1, :, :, 20]))
+            return Image.fromarray(np.asarray(test_outputs.detach().cpu()[0, 1, :, :, self.slice_no]))
     
 
 
