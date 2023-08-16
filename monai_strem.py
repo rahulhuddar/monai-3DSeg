@@ -10,10 +10,10 @@ import nibabel as nib
 device = torch.device('cpu')
 
 st.title('Medical Image Segmentation',)
-st.header('Segmentation of Hippocampus')
+st.header('Hippocampus Segmentation in Brain MRI Images using Computer Vision')
 st.write("""Nifti is a medical images format, to store both images, and companied data, the images are usually in grayscale, and 
          they are taken as slices, each slice with a different cross-section of the body.""")
-uploaded_file = st.file_uploader("Choose an image", ["nii.gz",'jpg'])
+uploaded_file = st.file_uploader("Upload a niffti file", ["nii.gz"])
 st.write('Or')
 use_default_images = st.checkbox('Use default Nifti Image')
 
@@ -21,7 +21,7 @@ if use_default_images:
     nifti_no = st.selectbox('choose any one', (1,2,3,4,5,6,7,8))
     st.write('You selected nifti file number:',nifti_no)
     st.write('There are 64 slices in this nifti file')
-    slice_no = st.slider('choose the slice number', min_value=1, max_value=64)
+    slice_no = st.slider('Slide to choose the slice number', min_value=1, max_value=64)
     st.write('You selected a slice number:',slice_no)
     in_dir = "Task04_Hippocampus"
 
